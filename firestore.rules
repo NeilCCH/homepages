@@ -1,0 +1,30 @@
+rules_version = '2';
+
+// Firestore 安全規則 — 個人網站部落格 (posts 集合)
+//
+// 重點：網站的「管理者登入」判斷是在瀏覽器端執行的，任何前端判斷都擋不住
+// 有心人士。資料真正的防線是「這份規則」。以下規則只允許「已用 Firebase
+// 驗證登入、且 Email 等於管理者 Email」的人寫入，其餘所有人只能讀取。
+//
+// 部署方式：Firebase 主控台 → Firestore Database → 規則 → 貼上並發布，
+// 或使用 CLI： firebase deploy --only firestore:rules
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 部落格文章：所有人可讀，只有管理者本人可寫
+    match /posts/{postId} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.auth.token.email == 'neo0935@gmail.com';
+      //                                          ^^^^^^^^^^^^^^^^^^
+      //  ↑ 若你在 Firebase Authentication 建立的管理者帳號 Email 不是這個，
+      //    請改成你實際的管理者 Email。
+    }
+
+    // 其餘所有集合預設全部禁止（安全預設值）
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
